@@ -1,0 +1,198 @@
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Uploader</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 1.5rem;
+            background-color: #333;
+            color: whitesmoke;
+            justify-content: space-between;
+        }
+
+        input,
+        button {
+            font: inherit;
+            margin-top: 10px;
+
+        }
+
+        .full_section {
+            display: flex;
+            justify-content: space-between;
+
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="full_section">
+
+        <div style="margin-left: 10px;">
+            <!-- File Upload Section -->
+            <h2>Upload Files</h2>
+            <form id="uploadForm">
+                <input type="file" id="myFiles" accept="image/*" multiple />
+                <button>Upload</button>
+            </form>
+        </div>
+
+        <div>
+            <!-- File Download Section -->
+            <h2>Download Files</h2>
+            <form id="downloadForm">
+                <input type="text" id="publicKey" placeholder="Enter Public Key" />
+                <button>Download</button>
+            </form>
+        </div>
+
+        <div style="margin-right: 10px;">
+            <!-- File Deletion Section -->
+            <h2>Delete Files</h2>
+            <form id="deleteForm">
+                <input type="text" id="privateKey" placeholder="Enter Private Key" />
+                <button>Delete</button>
+            </form>
+        </div>
+
+    </div>
+
+    <p id="message"></p>
+    <p id="status"></p>
+    <p id="public_key"></p>
+    <p id="private_key"></p>
+    <p></p>
+
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm')
+        const downloadForm = document.getElementById('downloadForm');
+        const deleteForm = document.getElementById('deleteForm');
+        const publicKeyInput = document.getElementById('publicKey');
+        const privateKeyInput = document.getElementById("privateKey")
+        const status = document.getElementById('status')
+        const message = document.getElementById('message')
+        const public_key = document.getElementById('public_key')
+        const private_key = document.getElementById('private_key')
+
+        const sendFiles = async () => {
+
+            const myFiles = document.getElementById('myFiles').files
+            const formData = new FormData()
+
+            Object.keys(myFiles).forEach(key => {
+                formData.append(myFiles.item(key).name, myFiles.item(key))
+            })
+
+
+            const response = await fetch("http://localhost:3500/post/files", {
+                method: 'POST',
+                body: formData
+            })
+
+            const json = await response.json()
+            status.textContent = `Status: ${json?.status}`
+            message.textContent = `Uploaded File = ${json?.message}`;
+
+
+
+            if (json.public_key !== undefined) {
+                public_key.style.display = 'block';
+                public_key.textContent = `public key = ${json.public_key}`;
+            } else {
+                public_key.style.display = 'none'; // Hide the <p> tag
+            }
+
+
+            if (json.private_key !== undefined) {
+                private_key.style.display = 'block';
+                private_key.textContent = `private key = ${json.private_key}`;
+            } else {
+                private_key.style.display = 'none'; // Hide the <p> tag
+            }
+
+
+
+        }
+        const downloadFiles = async () => {
+            const publicKey = publicKeyInput.value;
+            // console.log(publicKey);
+            if (publicKey) {
+                // Make a GET request to the backend to initiate the file download
+                fetch(`http://localhost:3500/get/files/${publicKey}`, {
+                    method: 'GET',
+                })
+                    .then(response => {
+                        if (response.status === 200) {
+                            // The request was successful, trigger the download
+                            window.location.href = `http://localhost:3500/get/files/${publicKey}`;
+                        } else {
+                            // Handle error responses
+                            response.json().then(data => {
+                                // console.error(data);
+                                alert(`Error: ${data.message}`);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        // console.error(error);
+                        alert('An error occurred while trying to download the files.');
+                    });
+            } else {
+                alert('Please enter a valid public key.');
+            }
+        }
+
+
+        const deleteFiles = () => {
+            const privateKey = privateKeyInput.value;
+
+            // Make a POST request to your backend API to trigger the file deletion
+            fetch(`http://localhost:3500/delete/files/${privateKey}`, {
+                method: "DELETE",
+            })
+                .then(response => response.json())
+                .then(data => {
+
+                    window.alert(data.message);
+
+                })
+                .catch(error => {
+                    window.alert("Failed to delete files");
+                });
+        }
+        //File upload form
+        uploadForm.addEventListener('submit', (e) => {
+            e.preventDefault()
+            sendFiles()
+            uploadForm.reset();
+        })
+
+        // File Download Form
+        downloadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            downloadFiles();
+            // Add code to handle file download using the public key.
+            downloadForm.reset();
+        });
+
+        // File Delete Form
+        deleteForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            deleteFiles();
+            // Add code to handle file deletion using the private key.
+            deleteForm.reset();
+        })
+    </script>
+</body>
+
+</html>
